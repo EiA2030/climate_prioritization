@@ -12,16 +12,7 @@ execute:
   echo: true
 server: shiny
 ---
-<!-- 
-```{=html}
-<style>
-  .main-container {
-    max-width: 1800px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-</style>
-``` -->
+
 ::: {.panel-tabset .tabset-fade .tabset-pills}
 
 ### Introduction
@@ -129,6 +120,24 @@ return(PAL)
 haz_ex_file<-"Data/hazard_ex_admin.parquet"
 
 Data<-data.table(nanoparquet::read_parquet(haz_ex_file))
+
+all_hazards <- unique(Data$Hazard)
+main_hazards <- grep("[(.*)]", all_hazards, perl = TRUE, value = TRUE)
+compound_hazards <- grep("\\+", all_hazards, perl = TRUE, value = TRUE)
+hazard_keys <- setNames(
+  sub(" \\(.*\\)", "", main_hazards),
+  sub(".*\\((.*)\\)", "\\1", main_hazards)
+)
+compound_keys <- lapply(compound_hazards, \(x) {
+  indv_haz <- unlist(strsplit(x, "\\+"))
+  # setNames(paste(hazard_keys[indv_haz], collapse = " + "), x)
+  return(paste0(hazard_keys[indv_haz], collapse = " + "))
+})
+names(compound_keys) <- compound_hazards
+compound_keys$none <- "None"
+
+Data[, Hazard := sapply(Hazard, \(x) compound_keys[[x]] %||% sub(" \\(.*\\)", "", x))]
+
 # default variable selection
 var_choice<-"vop"
 ```
@@ -195,6 +204,7 @@ output$Countries <- renderUI({
 ```{r, echo=F}
 uiOutput("Countries")
 ```
+
 ```{r choose crops 2,echo=F}
 #| context: server
 crop_options<-reactive({
@@ -290,7 +300,7 @@ tags$div(
       inputId = "Palette", 
       label = strong("Choose Color Palette"),
       choices = Palettes[,sort(Palette)],
-      selected = "turbo", 
+      # selected = "Arch", 
       multiple = FALSE, 
       width = "200px"
     ),
@@ -441,7 +451,7 @@ dat<-reactive({
   if(n_haz>0){
   haz_choice<-c(haz_choice,haz_rank[!grepl("[(]",Hazard),Hazard][1:n_haz])
   }
-  dat<-dat[!Hazard %in% c(haz_choice,"none") & !is.na(Hazard),Hazard:="other combination"]
+  dat<-dat[!Hazard %in% c(haz_choice,"none") & !is.na(Hazard),Hazard:="Other Combination"]
   
   dat<-dat[,.(value=sum(value,na.rm=T)),by=.(Hazard,value_tot_crop,Region,Country,Admin,Crop,variable)]
     
@@ -497,9 +507,6 @@ output$unitText <- renderText({
   req(square_val())
   req(square_val2())
   req(unit_x())
-  print(square_val())
-  print(square_val2())
-  print(unit_x())
 
   paste0("Plot 1: Waffle grid unit = ", square_val()," million ",unit_x(),". Plot 2: Waffle grid unit = ",square_val2()," million ",unit_x())
 })
@@ -826,7 +833,7 @@ output$main_plot <- renderPlot({
 ```
 
 ```{r, echo=F}
-plotOutput("main_plot")
+plotOutput("main_plot", height = "100%")
 ```
 
 
@@ -1029,7 +1036,7 @@ datatable(
     autoWidth = FALSE,  # Prevent automatic resizing
     columnDefs = list(
       list(width = '150px', targets = 0),  # First column
-      list(width = '200px', targets = 1,className = "text-truncate"),  # Second column with wrapping
+      list(width = '200px', targets = 1, className = "text-truncate"),  # Second column with wrapping
       list(width = '150px', targets = 2),  # Third column
       list(width = '150px', targets = 3),  # Fourth column
       list(width = '150px', targets = 4),  # Fifth column
