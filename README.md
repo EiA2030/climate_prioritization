@@ -21,9 +21,9 @@ pacman::p_load(char=required.packages,install = T,character.only = T)
 if(require("waffle")==F){ devtools::install_github("hrbrmstr/waffle") require("waffle") } 
 ```
 
- 4. The scripts in the `R` folder do not need to be run for the tool to work, as all necessary data is included. However, they can be modified or used as a reference for further customization.
+ 4. The scripts in the "R" folder do not need to be run for the tool to work, as all necessary data is included. However, they can be modified or used as a reference for further customization.
  5. Serve the .qmd file using Quarto. This can be done by running the following command in the terminal:
-```shell
+```bash
 quarto serve eia_climate_prioritization.qmd
 ```
 

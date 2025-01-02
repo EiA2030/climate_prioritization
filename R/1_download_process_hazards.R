@@ -492,10 +492,15 @@ s3<-s3fs::S3FileSystem$new(anonymous = T)
     }
     
     ### 1.7.2) Load & process #####
-    file<-list.files("raw_data/gaez/len-longest-component-LGP","rcp2p6_2050s",full.names = T)
-    lgp_fut<-terra::rast(file)
-    file<-list.files("raw_data/gaez/len-longest-component-LGP","Hist",full.names = T)
-    lgp_base<-terra::rast(file)
+    url_lgp_fut <- "https://s3.eu-west-1.amazonaws.com/data.gaezdev.aws.fao.org/res01/ENSEMBLE/rcp2p6/ld1_ENSEMBLE_rcp2p6_2050s.tif"
+    file_lgp_fut <- "raw_data/gaez/len-longest-component-LGP/rcp26_2050s.tif"
+    download_if_missing(file_lgp_fut, url_lgp_fut)
+    url_lgp_base <- "https://s3.eu-west-1.amazonaws.com/data.gaezdev.aws.fao.org/res01/CRUTS32/Hist/ld1_CRUTS32_Hist_8110.tif"
+    file_lgp_base <- "raw_data/gaez/len-longest-component-LGP/hist_2010s.tif"
+    download_if_missing(file_lgp_base, url_lgp_base)
+
+    lgp_fut<-terra::rast(file_lgp_fut)
+    lgp_base<-terra::rast(file_lgp_base)
     lgp_change<-(lgp_fut-lgp_base)
     lgp_change[lgp_change>=0]<-NA  
     lgp_change<-100*(-lgp_change/lgp_base)
