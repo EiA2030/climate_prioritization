@@ -2,8 +2,4 @@ This interactive Markdown document is designed to support the prioritization of 
 
 In addition to its specific application for CGIAR programs, this codebase is built to be fully repeatable and customizable, enabling adaptation for other purposes or regions. By incorporating flexible input datasets and scalable hazard combinations, the tool is suited to a wide range of agricultural and environmental risk assessments.
 
-![abc](https://github.com/user-attachments/assets/f2960fe9-715e-480f-945a-f7548988ad8f)
-
-![eia](https://github.com/user-attachments/assets/8f714333-1506-4d4a-8179-7b374b8b6f39)
-
-![cgiar](https://github.com/user-attachments/assets/c5dc44e4-7cd1-4d16-9904-e959fb044d1f)
+![Logos](https://github.com/user-attachments/assets/2e823d92-f8f0-43a3-af6d-08389f64bf44)
