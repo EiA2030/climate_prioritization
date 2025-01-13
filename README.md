@@ -6,6 +6,8 @@ This interactive Markdown document is designed to support the prioritization of 
 
 In addition to its specific application for CGIAR programs, this codebase is built to be fully repeatable and customizable, enabling adaptation for other purposes or regions. By incorporating flexible input datasets and scalable hazard combinations, the tool is suited to a wide range of agricultural and environmental risk assessments.
 
+For server hosted version of this tool see: https://africa-adaptation-atlas.shinyapps.io/eia_climate_prioritization/
+
 ---
 ## How to Use
 
