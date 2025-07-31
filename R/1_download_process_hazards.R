@@ -257,6 +257,7 @@ s3<-s3fs::S3FileSystem$new(anonymous = T)
     # Data were downloaded manually from the GDO website and then uploaded to the digital atlas s3
     # https://drought.emergency.copernicus.eu/tumbo/gdo/download/ 
     # Years 2010-2024
+    # It may be possible to update to automatically download from http://data.europa.eu/89h/b4727c91-955f-4e2f-b0cf-dd64145b57e7
     local_dir<-"raw_data/drought_observatory"
       if(!dir.exists(local_dir)){
         dir.create(local_dir)
@@ -277,7 +278,7 @@ s3<-s3fs::S3FileSystem$new(anonymous = T)
     }
       
     ### 1.5.2) Load & process #####
-  files<-list.files(gdo_dir,"tif$",full.names = T,recursive = T)
+  files<-list.files(local_dir,"tif$",full.names = T,recursive = T)
   layer_names<-gsub("_t.tif","",gsub("rdria_m_wld_","",basename(files)))
   layer_names<-data.table(year=substr(layer_names,1,4),
                           month=substr(layer_names,5,6),
@@ -357,7 +358,7 @@ s3<-s3fs::S3FileSystem$new(anonymous = T)
   }))
   drought_ir<-app(drought_yrs_ir,d_fun,threshold=1)
   
-  ## 1.6) AgERA5 - NTx35 ####
+  ## 1.6) AgERA5 - NTx ####
     ### 1.6.1) Download & load data ######
     local_dir<-"raw_data/agera5"
     s3_bucket <-file.path("s3://digital-atlas/hazards/agera5_ntx_global")
