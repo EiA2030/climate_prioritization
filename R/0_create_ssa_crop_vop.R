@@ -23,10 +23,7 @@ ms_codes_url <- "https://raw.githubusercontent.com/AdaptationAtlas/hazards_proto
 spam2fao_url <- "https://raw.githubusercontent.com/AdaptationAtlas/hazards_prototype/main/metadata/SPAM2010_FAO_crops.csv"
 
 # 1) Load geographies ####
-
-
-s3_bucket <-"s3://digital-atlas/exposure/mapspam/eia_climate_prioritization"
-
+bucket_name_s3 <-"s3://digital-atlas"
 s3_bucket <- file.path(bucket_name_s3,"boundaries/eia_climate_prioritization")
 s3_files<-s3$dir_ls(s3_bucket)
 local_files<-file.path(geo_dir,basename(s3_files))
@@ -88,6 +85,8 @@ ms_codes<-ms_codes[compound=="no" & !is.na(Code_ifpri_2020) & !is.na(Code)]
 files_raw<-list.files(spam_dir,".tif",full.names = T)
 variables<-c("_prod_","_harv-area_")
 
+overwrite<-T
+
 for(variable in variables){
   cat("Running variable",variable,"\n")
   # Create save paths
@@ -95,7 +94,7 @@ for(variable in variables){
   save_file_i<-file.path(spam_dir,paste0("ssa_crop",variable,"i.tif"))
   save_file_r<-file.path(spam_dir,paste0("ssa_crop",variable,"r.tif"))
   
-  if(!file.exists(save_file_a)){
+  if(!file.exists(save_file_a)|overwrite==T){
     # Load data
     files<-grep(variable,files_raw,value=T)
     
@@ -128,9 +127,9 @@ for(variable in variables){
     }
     
     # Save data
-    writeRaster(spam_prod,save_file_a)
-    writeRaster(spam_prod_i,save_file_i)
-    writeRaster(spam_prod_r,save_file_r)
+    writeRaster(spam_prod,save_file_a,overwrite=T)
+    writeRaster(spam_prod_i,save_file_i,overwrite=T)
+    writeRaster(spam_prod_r,save_file_r,overwrite=T)
   }
 }
 
@@ -308,26 +307,20 @@ spam_vop_intd$`arabica coffee`<-acof
 spam_vop_intd<-spam_vop_intd[[order(names(spam_vop_intd))]]
 spam_vop_intd$coffee<-NULL
 
-terra::writeRaster(round(spam_vop_intd*1000,0),file.path(spam_dir,"ssa_crop_vop2020_int2015-2021_a.tif"),overwrite=T)
+spam_vop_intd_save<-round(spam_vop_intd*1000,1)
+terra::writeRaster(spam_vop_intd_save,file.path(spam_dir,"ssa_crop_vop2020_int2015-2021_a.tif"),overwrite=T)
 
 # 5) Split between rainfed and irrigated ####
 spam_prod_i<-spam_prod_i[[order(names(spam_prod_i))]]
 spam_prod_a<-spam_prod_a[[order(names(spam_prod_a))]]
 
-spam_prod_i_p<-pbapply::pblapply(1:nlyr(spam_prod_i),FUN=function(i){
-  a<-spam_prod_i[[i]]
-  b<-spam_prod_a[[i]]
-  a[!is.na(values(a))]<-a[!is.na(values(a))]/b[!is.na(values(a))]
-  return(a)
-})
-spam_prod_i_p<-rast(spam_prod_i_p)
-
+spam_prod_i_p<-spam_prod_i/spam_prod_a
 
 # Irrigated = irrigated_prod/total_prod * vop
-all(names(spam_vop_intd)==names(spam_prod_i_p))
 spam_vop_intd_i<-spam_vop_intd*spam_prod_i_p
-# Rainfed is all - irrigated
-spam_vop_intd_r<-spam_vop_intd- spam_vop_intd_i
+sub_dat<-spam_vop_intd_i
+sub_dat[is.na(sub_dat)]<-0
+spam_vop_intd_r<-spam_vop_intd-sub_dat
 
 terra::writeRaster(round(spam_vop_intd_i*1000,1),file.path(spam_dir,"ssa_crop_vop2020_int2015-2021_i.tif"),overwrite=T)
 terra::writeRaster(round(spam_vop_intd_r*1000,1),file.path(spam_dir,"ssa_crop_vop2020_int2015-2021_r.tif"),overwrite=T)

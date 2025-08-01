@@ -560,7 +560,7 @@ square_val2<-reactive({
 })
 
 unit_x<-reactive({
-  if(input$var_choice=="vop"){"IntD 2015"}else{"ha"}
+  if(input$var_choice=="vop"){"Int$2015 (2020-22 average)"}else{"ha"}
 })
 
 ```
@@ -612,7 +612,7 @@ Waffler<-function(data,
   # ylab
   variable<-data[,unique(variable)]
   if(variable=="vop"){
-    spam_lab1<-paste0("Value of production (",p3_unit," $I 2015)")
+    spam_lab1<-paste0("Value of production (",p3_unit," Int$2015; 2020-22 average)")
     spam_lab2<-"Value of production"
   }
   
@@ -933,13 +933,23 @@ textInput(inputId="Waffle.Filename",
   
 ```{r Save Waffle, echo=F}
 reactive({
-  if(input$Waffle.Save.Plot=="Yes"){
+  if(input$Waffle.Save.Plot=="Yes" & input$plot_choice=="plot1"){
     ggsave(filename = paste0(input$Waffle.Filename,".png"),
            plot =   ggpubr::ggarrange(plotlist=PlotData(), 
                     ncol=input$GridCols,
                     nrow=input$GridRows, 
                     common.legend = TRUE, 
                     legend=input$LegPos),
+           path = PlotDir,
+           width= input$Waffle.Width,
+           height = input$Waffle.Height,
+           units = "mm",
+           scale = input$Waffle.Scale,
+           dpi = 600,
+           type = "cairo")
+  }else{
+    ggsave(filename = paste0(input$Waffle.Filename,".png"),
+           plot =     if(input$plot_choice=="plot2"){PlotData()$Plot2}else{PlotData()$Plot3},
            path = PlotDir,
            width= input$Waffle.Width,
            height = input$Waffle.Height,
@@ -954,7 +964,7 @@ reactive({
 #### Data used in the waffle plot
 ```{r Show Data,echo=F}
 renderDT({
-  datatable(Data[,!c("Admin","Label","Rank","Rank2")][,Unit:=paste("I$ 2015")],
+  datatable(Data[,!c("Admin","Label","Rank","Rank2")][,Unit:=paste("Int$2015 (2020-22 average)")],
             caption="Crop hazard frequency x exposure data.",
             extensions = 'Buttons',
             filter = "top",
@@ -1019,18 +1029,24 @@ Each hazard was classified into two categories (presence or absence) based on pr
   - **Threshold**:  
     - Reduction < 10%: No significant reduction.  
     - Reduction ≥ 10%: Significant reduction.  
+    
+- **Water Stress (Aqueduct baseline)**:  
+  - **Description**: Derived from WRI Aqueduct’s baseline water stress (`bwd`) layer, resampled to the crop calendar grid. Categories 2, 3, and 4 (moderate to extreme baseline water stress) are flagged as hazard presence; all other values are treated as no stress.  
+  - **Thresholding**: Aqueduct `bwd` values are reclassified so that only stress categories 2–4 are retained (mapped to a binary hazard “ws”).  
 
 #### SPAM Exposure Data
 
 - **Global SPAM (IFPRI)**:  
-  - A global spatial production allocation model providing estimates of crop-specific production and harvested area [@mapspam_article; @mapspam_data].  
+  - SPAM 2020 v2.0 (based on circa 2017 cropping patterns with updated harmonization) provides crop-specific harvested area and production shares at 5-arcminute resolution. These shares are used to disaggregate country–crop gross production value from FAO’s *“Gross Production Value (constant 2014–2016 thousand international dollars)”* series. For each country–crop, annual FAO VOP values for 2019–2023 are pulled and the representative value is calculated as the mean of 2020–2022 (with fallback to the 2019–2023 mean if any of 2020–2022 are missing), producing a smoothed baseline centered on 2021. This value is treated as an approximation of **Int$2015** (no further temporal rebaselining applied). The original “thousand I$” values are converted to absolute international dollars prior to spatial allocation.
 
 - **Africa-Specific SPAM (AAAA)**:  
-  - Higher-resolution data for subnational crop production and harvested area across Africa, commissioned by the Africa Agricultural Adaptation Atlas.  
+  - Higher-resolution, regionally harmonized crop production and harvested area data for Africa, commissioned by the Africa Agricultural Adaptation Atlas, supersede the corresponding IFPRI SPAM 2020 values within Africa to improve local accuracy.
 
 - **Integration**:  
-  - Africa-specific SPAM data replaced corresponding IFPRI SPAM values to improve regional accuracy.  
-  - Final combined dataset included high-resolution exposure for Africa and global data coverage elsewhere.  
+  - Africa-specific SPAM replaces global SPAM inside Africa; global SPAM is retained elsewhere.  
+  - Country–crop VOP (Int$2015-equivalent, based on FAO 2019–2023 production value series, centered on 2021) is proportionally distributed to grid cells using the combined SPAM production shares.  
+  - The spatialized VOP is decomposed into irrigated and rainfed components via irrigation proportion rasters.  
+  - Final outputs are raster layers of crop value of production in Int$2015-equivalent: aggregate (`_a`), irrigated (`_i`), and rainfed (`_r`), used for downstream hazard exposure analysis.
 
 #### Outputs
 
