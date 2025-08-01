@@ -1,26 +1,26 @@
-cff-version: 1.2.0
-title: "CGIAR EiA Climate Prioritization Tool"
-version: "0.2.0"
-date-released: "2025-08-01"
+cff-version: 1.1.0
+title: CGIAR EiA Climate Prioritization Tool
+version: 0.2.0
+date-released: 2025-08-01
 message: "If you use this tool, please cite it as below."
-repository-code: "https://github.com/EiA2030/climate_prioritization"
+repository-code: https://github.com/EiA2030/climate_prioritization
 authors:
   - family-names: Steward
     given-names: Peter
-    orcid: "https://orcid.org/0000-0003-3985-4911"
-    affiliation: "Alliance of Bioversity International and CIAT"
+    orcid: https://orcid.org/0000-0003-3985-4911
+    affiliation: Alliance of Bioversity International and CIAT
   - family-names: Rosenstock
     given-names: Todd
-    orcid: "https://orcid.org/0000-0002-1958-9500"
-    affiliation: "Alliance of Bioversity International and CIAT"
+    orcid: https://orcid.org/0000-0002-1958-9500
+    affiliation: Alliance of Bioversity International and CIAT
   - family-names: Youngberg
     given-names: Brayden
-    affiliation: "Alliance of Bioversity International and CIAT"
+    affiliation: Alliance of Bioversity International and CIAT
   - family-names: Achicanoy
     given-names: Harold
-    orcid: "https://orcid.org/0000-0002-3432-3655"
-    affiliation: "Alliance of Bioversity International and CIAT"
+    orcid: https://orcid.org/0000-0002-3432-3655
+    affiliation: Alliance of Bioversity International and CIAT
   - family-names: Schmitter
     given-names: Petra
-    orcid: "https://orcid.org/0000-0002-3826-7224"
-    affiliation: "International Water Management Institute (IWMI)"
+    orcid: https://orcid.org/0000-0002-3826-7224
+    affiliation: International Water Management Institute (IWMI)
