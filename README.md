@@ -1,3 +1,7 @@
+# Climate Prioritization Tool
+
+## Description
+
 The live and interactive version of this document is avaliable at https://africa-adaptation-atlas.shinyapps.io/eia_climate_prioritization/
 
 This interactive Markdown document is designed to support the prioritization of climate adaptation investments at the regional level for CGIAR science programs. It accompanies a publication and provides an interactive interface for exploring the intersection of climate hazards and agricultural exposure. The primary goal is to aid decision-makers in identifying and prioritizing regions and crops most vulnerable to climate risks.

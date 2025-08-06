@@ -1,66 +1,19 @@
-# First run R/download_process_hazards.R
+# First run:
+# 0_create_ssa_crop_vop.R
+# 0_create_global_crop_vop.R
+# 1_download_process_hazards.R
+
 # 0) Install and load packages ####
 if(!require("pacman", character.only = TRUE)){install.packages("pacman",dependencies = T)}
 p_load(data.table,terra,wbstats,pbapply,install = T)
 
-  ## 0.1) Download datasets ####
-    ### 0.1.1) Set s3 bucket #####
-    bucket_name_s3<-"s3://digital-atlas"
-    s3<-s3fs::S3FileSystem$new(anonymous = T)
-    
-    ### 0.1.2) MapSPAM #####
-    # These data come from IFPRI and the Africa Agricultural Adaptation Atlas
-    # spam2020V1r0
-    # https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/SWPENT
-    # IFPRI data processing
-      # https://github.com/AdaptationAtlas/hazards_prototype/blob/main/R/misc/mapspam_2020_vop.R
-    # SPAM SSA data processing - 2020V1r2_SSA
-      # https://github.com/AdaptationAtlas/hazards_prototype/blob/main/R/0.45_create_crop_vop.R
-      # https://github.com/AdaptationAtlas/hazards_prototype/blob/main/R/0.6_process_exposure.R
-    
-    local_dir<-"raw_data/SPAM"
-    if(!dir.exists(local_dir)){
-      dir.create(local_dir)
-    }
-    
-    s3_bucket <-"s3://digital-atlas/exposure/mapspam/eia_climate_prioritization"
-    
-    # List files in the specified S3 bucket and prefix
-    files_s3<-s3$dir_ls(s3_bucket)
-    files_local<-file.path(local_dir,basename(files_s3))
-    
-    # If data does not exist locally download from S3 bucket
-    for(i in 1:length(files_local)){
-      file<-files_local[i]
-      if(!file.exists(file)){
-        s3$file_download(files_s3[i],file)
-      }
-    }
-    
-    ### 0.1.3) Boundaries #####
-    local_dir<-"raw_data/boundaries"
-    if(!dir.exists(local_dir)){
-      dir.create(local_dir)
-    }
-    
-    s3_bucket <-"s3://digital-atlas/boundaries/eia_climate_prioritization"
-    
-    # List files in the specified S3 bucket and prefix
-    files_s3<-s3$dir_ls(s3_bucket)
-    files_local<-file.path(local_dir,basename(files_s3))
-    
-    # If data does not exist locally download from S3 bucket
-    for(i in 1:length(files_local)){
-      file<-files_local[i]
-      if(!file.exists(file)){
-        s3$file_download(files_s3[i],file)
-      }
-    }
-    
 # 1) Prepare boundaries ####
-cgiar_countries <- terra::vect('raw_data/boundaries/CGIAR_countries_simplified.geojson')
-region_file<-"raw_data/boundaries/regions.geojson"
-country_file<-"raw_data/boundaries/countries.geojson"
+cgiar_countries <- terra::vect(file.path(geo_dir,"CGIAR_countries_simplified.geojson"))
+idx <- which(cgiar_countries$ADMIN == "South Sudan")
+cgiar_countries[idx]$ADM0_A3 <- "SSD"
+
+region_file<-file.path(geo_dir,"regions.geojson")
+country_file<-file.path(geo_dir,"countries.geojson")
 
 # Remove high income countries from regions
 # Retrieve country information
@@ -69,13 +22,22 @@ country_info <- data.table(wb_countries())[,.(iso3c,income_level,region)][,LMIC:
 ][income_level %in% c("Not Classified","Aggregates"),LMIC:=NA]
 
 # Merge income level with country vector
-cgiar_countries<-merge(cgiar_countries,country_info,by.x="ADM0_A3",by.y="iso3c")
-cgiar_regions<-terra::aggregate(cgiar_countries[cgiar_countries$LMIC==T],by="CG_REG")
+cgiar_countries<-merge(cgiar_countries,country_info,by.x="ADM0_A3",by.y="iso3c",all.x=T)
+
+idx <- which(cgiar_countries$ADMIN %in% c("Somaliland"))
+cgiar_countries[idx]$region <- "Sub-Saharan Africa"
+
+idx <- which(cgiar_countries$ADMIN %in% c("Sahara"))
+cgiar_countries[idx]$region <- "Africa"
+
+
+cgiar_regions<-terra::aggregate(cgiar_countries[cgiar_countries$LMIC==T|is.na(cgiar_countries$LMIC)],by="CG_REG")
 cgiar_regions[,c("region","income_level","agg_n","LMIC")]<-NULL
 
-# Create larger regions and merge back with cgiar_regions
+cgiar_countries[is.na(cgiar_countries$region)]
 
-middle_east_countries<-c("IRN","IRQ","JOR","KWT","LBN","OMN","SAU","SYR","ARE","YEM","PSE","BHR","QAT","ISR","MLT")
+# Create larger regions and merge back with cgiar_regions
+middle_east_countries<-c("IRN","IRQ","JOR","KWT","LBN","OMN","SAU","SYR","ARE","YEM","PSE","BHR","QAT","ISR","MLT","KAZ","KGZ","TJK","TKM","UZB","AFG","PAK")
 cgiar_regions2<-cgiar_countries
 cgiar_regions2$region2<-NA
 cgiar_regions2$region2[grepl("Asia",cgiar_regions2$region)]<-"Asia"
@@ -98,24 +60,30 @@ terra::writeVector(cgiar_regions,region_file,overwrite=T)
 terra::writeVector(cgiar_countries,country_file,overwrite=T)
 
 # 2) Set Base raster #####
-  base_rast<-terra::rast("raw_data/haz_comb/haz_agg_rf.tif")
+base_rast<-terra::rast("raw_data/haz_comb/haz_full_rf.tif")
+
 # 3) Resample SPAM #####
+spam_dir_ssa<-file.path("raw_data/SPAM/spam2020v1r2_ssa")
+spam_dir_global<-file.path("raw_data/SPAM/spam2020V2r0_ifpri")
+spam_dir_processed<-file.path("raw_data/SPAM/processed")
+if(!dir.exists(spam_dir_processed)){dir.create(spam_dir_processed)}
 
   ms_codes<-data.table::fread( "https://raw.githubusercontent.com/AdaptationAtlas/hazards_prototype/main/metadata/SpamCodes.csv", showProgress = FALSE)[,Code:=toupper(Code)]
   ms_codes<-ms_codes[compound=="no"]
 
   spam_techs<-c("r","i","a")
-  spam_variables<-c("crop_vop15_intd15","crop_H")
-  overwrite<-F
+  spam_variables_global<-c("crop_vop2020_int2015-2021","crop_H")
+  spam_variables_ssa<-c("crop_vop2020_int2015-2021","crop_harv-area")
+  overwrite<-T
   
-  for(variable in spam_variables){
-    spam_ssa_path<-paste0("raw_data/SPAM/SSA_",variable,"_")
-    spam_global_path<-paste0("raw_data/SPAM/global_",variable,"_")
+  for(j in 1:length(spam_variables_global)){
+    spam_ssa_path<-file.path(spam_dir_ssa,paste0("ssa_",spam_variables_ssa[j],"_"))
+    spam_global_path<-file.path(spam_dir_global,paste0("global_",spam_variables_global[j],"_"))
     spam_files<-apply(expand.grid(c(spam_ssa_path,spam_global_path),spam_techs,".tif"),1,FUN=paste,collapse="")
   
     for(i in 1:length(spam_files)){
-      cat(variable,"-",i,"/",length(spam_files),"\n")
-      file_new<-gsub(".tif","_rs.tif",spam_files[i])
+      cat(spam_variables_global[j],"-",i,"/",length(spam_files),"\n")
+      file_new<-file.path(spam_dir_processed,gsub(".tif","_rs.tif",basename(spam_files[i])))
       if(!file.exists(file_new)|overwrite==T){
       spam_dat<-terra::rast(spam_files[i])
       
@@ -133,15 +101,16 @@ terra::writeVector(cgiar_countries,country_file,overwrite=T)
     }
     
     # Combine spam global and spam africa #####
-    spam_comb_path<-gsub("global","comb",spam_global_path)
+    spam_comb_path<-file.path(spam_dir_processed,gsub("global","comb",basename(spam_global_path)))
     for(tech in spam_techs){
-      cat(variable,"-combining ssa & global - tech = ",tech,"\n")
+      cat(spam_variables_global[j],"-combining ssa & global - tech = ",tech,"\n")
       
       save_path<-paste0(spam_comb_path,tech,"_rs.tif")
       if(!file.exists(save_path)|overwrite){
         # Load mapspam data
-        spam_africa<-terra::rast(paste0(spam_ssa_path,tech,"_rs.tif"))+0
-        spam_global<-terra::rast(paste0(spam_global_path,tech,"_rs.tif"))+0
+        spam_africa<-terra::rast(file.path(spam_dir_processed,paste0(basename(spam_ssa_path),tech,"_rs.tif")))+0
+        spam_global<-terra::rast(file.path(spam_dir_processed,paste0(basename(spam_global_path),tech,"_rs.tif")))+0
+        
         if("BANA" %in% names(spam_global)){
           names(spam_global)<-ms_codes[match(names(spam_global),Code),Fullname]
         }
@@ -150,7 +119,7 @@ terra::writeVector(cgiar_countries,country_file,overwrite=T)
         crops<-crops[crops %in% names(spam_global)]
         
         spam_combined <-rast(lapply(crops, FUN = function(crop) {
-          cat(crop)
+          cat(crop,"            \r")
           a <- spam_global[[crop]]
           b <- spam_africa[[crop]]
           a[!is.na(values(b))] <- values(b)[!is.na(values(b))]
@@ -158,9 +127,10 @@ terra::writeVector(cgiar_countries,country_file,overwrite=T)
         }))
         cat("\n")
         
-        writeRaster(spam_combined,save_path)
+        writeRaster(spam_combined,save_path,overwrite=T)
       }
     }
+    
     if(F){
       # Check results
       
@@ -189,17 +159,20 @@ terra::writeVector(cgiar_countries,country_file,overwrite=T)
   
   
 # 4) Rasterize geographies #####
-  Regions_rast<-lapply(1:length(cgiar_regions),FUN=function(i){terra::rasterize(cgiar_regions[i],base_rast,field="CG_REG")})
+  Regions_rast<-lapply(1:length(cgiar_regions),FUN=function(i){
+    terra::rasterize(cgiar_regions[i],base_rast,field="CG_REG")
+    })
   names(Regions_rast)<-cgiar_regions$CG_REG
+  
   Countries_rast<-terra::rasterize(cgiar_countries,base_rast,field="ADMIN")
 
 # 5) Extract VoP ####
-  for(variable in spam_variables){
-    spam_comb_path<-paste0("raw_data/SPAM/comb_",variable,"_")
+  for(variable in spam_variables_global){
+    spam_comb_path<-file.path(spam_dir_processed,paste0("comb_",variable,"_"))
     
     for(tech in spam_techs){
       cat(variable,"-",tech,"\n")
-      save_file<-file.path("raw_data/SPAM",paste0("SPAMextracted_",variable,"_",tech,".csv"))
+      save_file<-file.path(spam_dir_processed,paste0("SPAMextracted_",variable,"_",tech,".csv"))
       if(!file.exists(save_file)|overwrite){
       ## Load mapspam data #####
       spam_combined<-terra::rast(paste0(spam_comb_path,tech,"_rs.tif"))
@@ -250,11 +223,11 @@ spam_a[Region==admin & Country=="" & grepl(crop,Crop),sum(VoP)]
                                      'raw_data/haz_comb/haz_full_ir.csv'))
   hazard_layers[,file_n:=c("rf","ir")][,irrigated:=c(F,T)]
   
-  overwrite<-F
+  overwrite<-T
   
-  for(variable in spam_variables){
+  for(variable in spam_variables_global){
     var<-if(variable=="crop_H"){"ha"}else{"vop"}
-    spam_comb_path<-paste0("raw_data/SPAM/comb_",variable,"_")
+    spam_comb_path<-file.path(spam_dir_processed,paste0("comb_",variable,"_"))
   for(i in 1:nrow(hazard_layers)){
     cat("variable",var,"| tech",i,"/",nrow(hazard_layers),"\n")
     haz_choice<-hazard_layers$file_n[i]
