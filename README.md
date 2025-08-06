@@ -10,6 +10,8 @@ In addition to its specific application for CGIAR programs, this codebase is bui
 
 The tool empowers users to dynamically adjust parameters, such as the selection of crops, regions, or hazard thresholds, providing a customizable framework for climate risk analysis.
 
+## Building From Source
+
 If you wish to build this tool from the source code, rather than using the hosted version, you will need to follow these steps:
 
 1.  Clone this repository to your local machine.
@@ -31,8 +33,36 @@ if(require("waffle")==F){ devtools::install_github("hrbrmstr/waffle") require("w
 quarto serve eia_climate_prioritization.qmd
 ```
 
-![abc](https://github.com/user-attachments/assets/f2960fe9-715e-480f-945a-f7548988ad8f)
+## Data Sources
 
-![eia](https://github.com/user-attachments/assets/8f714333-1506-4d4a-8179-7b374b8b6f39)
+The repository integrates multiple datasets to support climate prioritization analyses, including:
+- **Climate Hazards Data**: Datasets representing key climate hazards such as drought, flood, and extreme heat.
+- **Agricultural Exposure Data**: Information on regional crop production, soil types, and farming systems.
+- **Geospatial Data**: Boundary and mapping data for regional analysis.
 
-![cgiar](https://github.com/user-attachments/assets/c5dc44e4-7cd1-4d16-9904-e959fb044d1f)
+---
+
+## Contributors
+
+This project was developed with contributions from the following team:
+
+- **Peter Steward** (Lead Scientist) - [p.steward@cgiar.org](mailto:p.steward@cgiar.org)
+- **Todd Rosenstock** (Project Manager/Lead) - [t.rosenstock@cgiar.org](mailto:t.rosenstock@cgiar.org)
+- **Brayden Youngberg** (Data Discovery & Hosting Support) - [b.youngberg@cgiar.org](mailto:b.youngberg@cgiar.org)
+- **Harold Achicanoy** (Hazard Dataset Creation) - [h.achicanoy@cgiar.org](mailto:h.achicanoy@cgiar.org)
+- **Namita Joshi** (Testing Support) - [n.joshi@cgiar.org](mailto:n.joshi@cgiar.org)
+- **Lolita Muller** (Testing Support & Quarto Development) - [m.lolita@cgiar.org](mailto:m.lolita@cgiar.org)
+
+---
+
+## Acknowledgment
+
+This work was funded under the Climate Action Lever of the CGIAR Excellence in Agronomy (EiA) Initiative and supported by the Alliance of Bioversity International and CIAT.
+
+---
+
+## License
+
+This project is licensed under the [GPL-3.0 License](https://opensource.org/licenses/GPL-3.0).
+
+![Logos](https://github.com/user-attachments/assets/2e823d92-f8f0-43a3-af6d-08389f64bf44)
